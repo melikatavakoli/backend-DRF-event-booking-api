@@ -1,4 +1,4 @@
-from django.contrib.auth import get_User_model
+from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
@@ -19,9 +19,9 @@ from core.serializers import (
     SendOTPSerializer,
     UserListSerializer,
 )
-from core.choices import RoleType, StatusType
+from core.types import RoleType
 
-User = get_User_model()
+User = get_user_model()
 
 TokenPairSerializer = inline_serializer(
     name="TokenPair",
@@ -46,8 +46,8 @@ class RegisterWithOTPView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        User = serializer.save()
-        refresh = RefreshToken.for_User(User)
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -73,8 +73,8 @@ class LoginOTPView(APIView):
     def post(self, request):
         serializer = LoginOtpSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        User = serializer.validated_data["User"]
-        refresh = RefreshToken.for_User(User)
+        user = serializer.validated_data["user"]
+        refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -89,8 +89,8 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        User = serializer.validated_data["User"]
-        refresh = RefreshToken.for_User(User)
+        user = serializer.validated_data["user"]
+        refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -108,8 +108,7 @@ class LogoutView(APIView):
         refresh = request.data.get("refresh")
         if not refresh:
             return Response(
-                {"detail": "refresh token required"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "refresh token required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
@@ -117,8 +116,7 @@ class LogoutView(APIView):
             token.blacklist()
         except Exception:
             return Response(
-                {"detail": "invalid token"},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "invalid token"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         return Response({"detail": "logout successful"}, status=status.HTTP_200_OK)
@@ -129,8 +127,8 @@ class ResetPasswordView(APIView):
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        User = serializer.save()
-        refresh = RefreshToken.for_User(User)
+        user = serializer.save()
+        refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "access": str(refresh.access_token),
@@ -159,18 +157,18 @@ class UserListView(ListAPIView):
     pagination_class = CustomLimitOffsetPagination
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["status"]
-    ordering_fields = ["_created_at", "full_name"]
+    ordering_fields = ["__created_at", "full_name"]
     search_fields = ["mobile", "first_name", "last_name"]
 
     def get_queryset(self):
-        User = self.request.User
+        user = self.request.user
 
-        if User.role == RoleType.ADMIN:
+        if user.role == RoleType.ADMIN:
             return User.all_objects.all()
-        elif User.role == RoleType.STAFF:
+        elif user.role == RoleType.STAFF:
             return User.objects.filter(role=RoleType.PATIENT)
         else:
-            return User.objects.filter(id=User.id)
+            return User.objects.filter(id=user.id)
 
 
 class UserListView(ListAPIView):
@@ -181,8 +179,8 @@ class UserListView(ListAPIView):
     filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
     filterset_fields = ("mobile",)
     search_fields = ("first_name", "last_name", "mobile")
-    ordering = ("_created_at",)
-    ordering_fields = ("first_name", "_created_at")
+    ordering = ("__created_at",)
+    ordering_fields = ("first_name", "__created_at")
 
     @extend_schema(
         responses=UserListSerializer(many=True),

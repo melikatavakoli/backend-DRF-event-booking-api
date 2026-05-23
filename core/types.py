@@ -2,8 +2,8 @@ from django.db import models
 
 
 class RoleType(models.TextChoices):
-    PATIENT = "P", "patient"
-    Doctor = "D", "doctor"
+    CUSTOMER = "C", "customer"
+    STAFF = "S", "staff"
     ADMIN = "A", "admin"
 
 

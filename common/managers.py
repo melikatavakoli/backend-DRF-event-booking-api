@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager
+from django.contrib.auth.models import CoreUserManager
 from django.utils import timezone
 from core.types import RoleType
 
@@ -35,7 +35,7 @@ class SoftDeleteManager(models.Manager):
         return self.get_queryset().hard_delete()
 
 
-class UserManager(BaseUserManager, SoftDeleteManager):
+class UserManager(CoreUserManager, SoftDeleteManager):
     use_in_migrations = True
 
     def _create_user(self, mobile, password, **extra_fields):
