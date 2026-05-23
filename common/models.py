@@ -4,7 +4,7 @@ from django.db import models
 from django.utils import timezone
 from common.managers import SoftDeleteManager
 from .format import common_datetime_str
-from django_currentUser.db.models import CurrentUserField
+from django_currentuser.db.models import CurrentUserField
 from auditlog.registry import auditlog
 from django.db.models.base import ModelBase
 from django.db import transaction

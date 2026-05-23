@@ -2,7 +2,6 @@ import django_filters
 
 
 class BaseFilter(django_filters.FilterSet):
-
     def filter_csv(self, queryset, field_name, value):
         values = [v.strip() for v in value.split(",") if v.strip()]
         return (

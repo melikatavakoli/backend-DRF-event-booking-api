@@ -34,19 +34,17 @@ class BaseAdmin(AuditlogHistoryAdminMixin, ImportExportModelAdmin):
         try:
             with transaction.atomic():
                 queryset.hard_delete()
-            self.message_User(
-                request,
-                f"{count} record(s) permanently deleted.",
-                messages.SUCCESS,
+            self.message_user(
+                request, f"{count} record(s) permanently deleted.", messages.SUCCESS
             )
         except ProtectedError:
-            self.message_User(
+            self.message_user(
                 request,
                 "Cannot hard delete because related protected objects exist.",
                 messages.ERROR,
             )
         except Exception as e:
-            self.message_User(request, str(e), messages.ERROR)
+            self.message_user(request, str(e), messages.ERROR)
 
     @admin.action(description="Restore selected (undo soft delete)")
     def restore_selected(self, request, queryset):
@@ -55,11 +53,11 @@ class BaseAdmin(AuditlogHistoryAdminMixin, ImportExportModelAdmin):
             for obj in queryset
             if getattr(obj, "_is_deleted", False) and obj.restore()
         )
-        self.message_User(request, f"{restored} record(s) restored.", messages.SUCCESS)
+        self.message_user(request, f"{restored} record(s) restored.", messages.SUCCESS)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
-        if not request.User.is_superUser:
+        if not request.user.is_superuser:
             actions.pop("hard_delete_selected", None)
         if request.GET.get("_is_deleted") != "1":
             actions.pop("restore_selected", None)

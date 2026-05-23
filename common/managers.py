@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager
 from django.utils import timezone
-from core.choices import RoleType
+from core.types import RoleType
 
 
 class SoftDeleteQuerySet(models.QuerySet):
@@ -38,22 +38,22 @@ class SoftDeleteManager(models.Manager):
 class UserManager(BaseUserManager, SoftDeleteManager):
     use_in_migrations = True
 
-    def _create_User(self, mobile, password, **extra_fields):
+    def _create_user(self, mobile, password, **extra_fields):
         if not mobile:
             raise ValueError("mobile must be set")
-        User = self.model(mobile=mobile, **extra_fields)
-        User.set_password(password)
-        User.save(using=self._db)
-        return User
+        user = self.model(mobile=mobile, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
-    def create_User(self, mobile, password=None, **extra_fields):
+    def create_user(self, mobile, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", False)
-        extra_fields.setdefault("is_superUser", False)
-        return self._create_User(mobile, password, **extra_fields)
+        extra_fields.setdefault("is_superuser", False)
+        return self._create_user(mobile, password, **extra_fields)
 
-    def create_superUser(self, mobile, password, **extra_fields):
+    def create_superuser(self, mobile, password, **extra_fields):
         extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superUser", True)
+        extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_verified", True)
         extra_fields.setdefault("role", RoleType.ADMIN)
-        return self._create_User(mobile, password, **extra_fields)
+        return self._create_user(mobile, password, **extra_fields)

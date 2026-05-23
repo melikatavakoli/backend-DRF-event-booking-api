@@ -1,11 +1,11 @@
-from django.contrib.auth import get_User_model
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-User = get_User_model()
+User = get_user_model()
 
 
-class GenericSerializer(serializers.ModelSerializer):
+class GenericModelSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(read_only=True)
     created_by = serializers.SerializerMethodField()
     updated_by = serializers.SerializerMethodField()
@@ -30,28 +30,28 @@ class GenericSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_created_by(self, obj):
-        User = getattr(obj, "_created_by", None)
-        if not User or hasattr(User, "all"):
+        user = getattr(obj, "_created_by", None)
+        if not user or hasattr(user, "all"):
             return None
-        return f"{User.first_name} {User.last_name}".strip() or User.mobile
+        return f"{user.first_name} {user.last_name}".strip() or user.mobile
 
     def get_updated_by(self, obj):
-        User = getattr(obj, "_updated_by", None)
-        if not User or hasattr(User, "all"):
+        user = getattr(obj, "_updated_by", None)
+        if not user or hasattr(user, "all"):
             return None
-        return f"{User.first_name} {User.last_name}".strip() or User.mobile
+        return f"{user.first_name} {user.last_name}".strip() or user.mobile
 
     def get__created_by(self, obj):
-        User = getattr(obj, "_created_by", None)
-        if not User or hasattr(User, "all"):
+        user = getattr(obj, "_created_by", None)
+        if not user or hasattr(user, "all"):
             return None
-        return str(User.id)
+        return str(user.id)
 
     def get__updated_by(self, obj):
-        User = getattr(obj, "_updated_by", None)
-        if not User or hasattr(User, "all"):
+        user = getattr(obj, "_updated_by", None)
+        if not user or hasattr(user, "all"):
             return None
-        return str(User.id)
+        return str(user.id)
 
     def get_created_at(self, obj):
         return getattr(obj, "created_at", None)

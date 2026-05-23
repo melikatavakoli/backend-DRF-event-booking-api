@@ -40,4 +40,6 @@ urlpatterns = [
     ),
     path("api/v1/address/", include("address.urls")),
     path("api/v1/core/", include("core.urls")),
+    path("api/v1/booking/", include("booking.urls")),
+    path("api/v1/ticket/", include("ticket.urls")),
 ]
