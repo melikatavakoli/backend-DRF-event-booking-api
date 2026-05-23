@@ -42,7 +42,7 @@ The system utilizes custom DRF permissions for fine-grained access control:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/your-repo-name.git
+   git clone https://github.com/your-username/backend-DRF-event-booking-api.git
    ```
 
 2. Setup virtual environment and install dependencies:
