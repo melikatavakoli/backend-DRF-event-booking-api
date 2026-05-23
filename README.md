@@ -1,6 +1,4 @@
-***
 
-```
 # 🎫 Concert Ticket Reservation System
 
 A robust and scalable concert ticket reservation system built with **Django Rest Framework (DRF)**.
@@ -70,4 +68,4 @@ The system utilizes custom DRF permissions for fine-grained access control:
 
 ## 📝 License
 Distributed under the [MIT License](LICENSE).
-```
+
