@@ -1,143 +1,73 @@
-Concert Ticketing README
+***
 
-A high-performance, concurrency-safe Concert Ticket Reservation System built with Django Rest Framework (DRF). This system allows organizers to manage shows and categories while providing a seamless, reliable booking experience for customers.
+```
+# 🎫 Concert Ticket Reservation System
 
-🚀 Features
+A robust and scalable concert ticket reservation system built with **Django Rest Framework (DRF)**.
 
+---
 
+## 🚀 Key Features
+- **Custom User Management:** Advanced authentication system with role-based access control (Customer, Staff, Admin).
+- **Booking Workflow:** Secure and transactional reservation process.
+- **Stock Management:** Built-in `atomic transaction` and `select_for_update` logic to prevent race conditions and overbooking.
+- **Financial Integrity:** Automated price calculation system ensuring accurate summation.
+- **Ticket Generation:** Automated unique ticket code generation based on booking dates and seat numbers.
 
+---
 
+## 🛠 Tech Stack
+- **Backend:** Python, Django, Django Rest Framework
+- **Database:** PostgreSQL (Recommended)
+- **Authentication:** Custom User Model with Role-based Permissions
+- **Transactions:** `select_for_update` for concurrency control
 
-Role-Based Access Control: Distinct roles for Admins, Staff, and Customers.
+---
 
+## 🏗 System Architecture
+The system is built around four core modules:
+1. **CoreUser:** Manages user profiles, authentication, and custom roles.
+2. **Show:** Handles event venues and show details.
+3. **Category:** Defines ticket tiers, pricing, and manages stock levels.
+4. **Booking & Ticket:** Manages the reservation lifecycle and final ticket issuance.
 
+---
 
-Concurrency Safety: Uses database transactions and select_for_update() to prevent overbooking.
+## 🛡 Permissions
+The system utilizes custom DRF permissions for fine-grained access control:
+- `IsAdminRole`: Grants full administrative access.
+- `IsStaffOrAdminRole`: Grants authorized access to staff members for operational management.
 
+---
 
+## 📥 Installation
 
-Dynamic Ticketing: Automated unique QR-ready ticket code generation.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/your-repo-name.git
+   ```
 
+2. Setup virtual environment and install dependencies:
+   ```bash
+   python -m venv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
+3. Run migrations and start the server:
+   ```bash
+   python manage.py migrate
+   python manage.py runserver
+   ```
 
-Secure Calculations: Decimal-based price handling for financial accuracy.
+---
 
+## 💡 Technical Notes
+- **Concurrency:** To prevent race conditions, stock deduction and booking operations are wrapped in `transaction.atomic()` with `select_for_update()` locked on the category object.
+- **Data Handling:** While some fields use `CharField` per project requirements, all business logic and financial calculations are strictly cast to `Decimal` or `int` to ensure data integrity and accuracy.
 
+---
 
-RESTful API: Clean, intuitive endpoints for managing Shows, Categories, and Bookings.
-
-
-
-🏗️ Architecture Overview
-
-graph TD
-    User[Customer/Staff] --> API[DRF API ViewSet]
-    API --> Booking[Booking Logic]
-    Booking --> Show[Show Info]
-    Booking --> Cat[Category - Price/Stock]
-    Booking --> Ticket[Ticket Generation]
-    
-    subgraph "Database Layer (Atomic Transactions)"
-    Cat
-    Ticket
-    Booking
-    end
-
-
-
-
-🛠️ Data Model Relationships
-
-The system is designed for high data integrity:
-
-ModelPurposeCoreUserManages user profiles, roles, and authentication.ShowRepresents the event (location, title, description).CategoryDefines pricing tiers and manages inventory (stock).BookingLinks users to shows; calculates total transaction cost.TicketIndividual seat reservation with unique tracking codes.
-
-
-
-⚡ Key Technical Implementation
-
-1. Stock Management
-
-To ensure zero overbooking, the system employs pessimistic locking:
-
-
-
-
-
-select_for_update() locks the category record during the booking process.
-
-
-
-An atomic transaction ensures that stock reduction and ticket creation succeed or fail together.
-
-2. Price Handling
-
-Financial values are stored as CharField in the database, but processed as Decimal in the application logic to ensure precision and prevent floating-point errors.
-
-3. Ticket Generation
-
-Tickets are automatically generated upon confirmed booking.
-
-
-
-
-
-Code Format: YY-MM-DD-SeatNumber
-
-
-
-Example: 26-05-24-1
-
-
-
-📦 Setup Instructions
-
-
-
-
-
-Clone the repository:
-
-git clone https://github.com/yourusername/concert-ticketing-system.git
-
-
-
-
-Install dependencies:
-
-pip install -r requirements.txt
-
-
-
-
-Run migrations:
-
-python manage.py migrate
-
-
-
-
-Start the server:
-
-python manage.py runserver
-
-
-
-
-🛡️ API Security
-
-Access is strictly managed via Custom Permission Classes mapping to RoleType:
-
-
-
-
-
-Admin/Staff: Have full read/write access.
-
-
-
-Customers: Limited to viewing events and managing their own bookings.
-
-
-
-Built with Django Rest Framework, Python 3.11+
+## 📝 License
+Distributed under the [MIT License](LICENSE).
+```
