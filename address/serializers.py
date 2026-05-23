@@ -1,4 +1,4 @@
-from address.models import Branch, City, Country, State
+from address.models import City, Country, State
 from common.serializers import GenericModelSerializer
 
 
@@ -42,25 +42,5 @@ class CitySerializer(GenericModelSerializer):
             "id",
             "label",
             "state",
-            "state_detail",
-        )
-
-
-class BranchSerializer(GenericModelSerializer):
-    city_detail = CityMiniSerializer(source="city", read_only=True)
-    state_detail = StateMiniSerializer(source="city.state", read_only=True)
-
-    class Meta:
-        model = Branch
-        fields = GenericModelSerializer.Meta.fields + (
-            "id",
-            "code",
-            "title",
-            "city",
-            "city_detail",
-            "address",
-            "location",
-            "is_active",
-            "mobile",
             "state_detail",
         )
