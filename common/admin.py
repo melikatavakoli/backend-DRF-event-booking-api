@@ -20,7 +20,7 @@ class SoftDeleteListFilter(admin.SimpleListFilter):
         return queryset
 
 
-class BaseAdmin(AuditlogHistoryAdminMixin, ImportExportModelAdmin):
+class BaseAdmin(ImportExportModelAdmin):
     show_auditlog_history_link = True
     actions = ["hard_delete_selected", "restore_selected"]
     list_filter = (SoftDeleteListFilter,)

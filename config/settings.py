@@ -54,6 +54,7 @@ LOCAL_APPS = [
     "address",
     "core",
     "booking",
+    "seat",
     "ticket",
     ]
 
@@ -74,7 +75,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
-AUTH_User_MODEL = "core.User"
+AUTH_User_MODEL = "core.CoreUser"
 
 TEMPLATES = [
     {
@@ -95,15 +96,13 @@ TEMPLATES = [
 ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB"),
-        "User": os.getenv("POSTGRES_User"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "HOST": os.getenv("POSTGRES_HOST"),
-        "PORT": os.getenv("POSTGRES_PORT"),
-        "CONN_MAX_AGE": 0,
-        "DISABLE_SERVER_SIDE_CURSORS": True,
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'concert_db'),
+        'USER': os.getenv('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 

@@ -11,8 +11,6 @@ class CoreUserAdmin(BaseAdmin):
         "mobile",
         "email",
         "role",
-        "is_verified",
-        "is_email_verified",
         "city",
         "country",
         "created_at_display",
@@ -21,8 +19,6 @@ class CoreUserAdmin(BaseAdmin):
     list_filter = (
         SoftDeleteListFilter,
         "role",
-        "is_verified",
-        "is_email_verified",
         "country",
         "state",
         "city",
@@ -62,15 +58,6 @@ class CoreUserAdmin(BaseAdmin):
                     "country",
                     "state",
                     "city",
-                )
-            },
-        ),
-        (
-            "Verification",
-            {
-                "fields": (
-                    "is_verified",
-                    "is_email_verified",
                 )
             },
         ),

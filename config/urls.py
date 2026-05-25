@@ -6,7 +6,6 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-from common.postman_schema import DownloadSchemaView
 
 urlpatterns = [
     path("adminpanel/", admin.site.urls),
@@ -33,13 +32,9 @@ urlpatterns = [
         ),
         name="redoc",
     ),
-    path(
-        "swagger/output.json",
-        DownloadSchemaView.as_view(authentication_classes=[], permission_classes=[]),
-        name="schema-json",
-    ),
     path("api/v1/address/", include("address.urls")),
     path("api/v1/core/", include("core.urls")),
     path("api/v1/booking/", include("booking.urls")),
+    path("api/v1/seat/", include("seat.urls")),
     path("api/v1/ticket/", include("ticket.urls")),
 ]
