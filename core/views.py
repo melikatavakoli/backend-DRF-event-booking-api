@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from common.paginations import CustomLimitOffsetPagination
-from core.models import CoreUser
 from core.serializers import (
     ChangePasswordSerializer,
     LoginOtpSerializer,
@@ -108,7 +107,8 @@ class LogoutView(APIView):
         refresh = request.data.get("refresh")
         if not refresh:
             return Response(
-                {"detail": "refresh token required"}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "refresh token required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
@@ -116,7 +116,8 @@ class LogoutView(APIView):
             token.blacklist()
         except Exception:
             return Response(
-                {"detail": "invalid token"}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "invalid token"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response({"detail": "logout successful"}, status=status.HTTP_200_OK)
@@ -169,21 +170,3 @@ class UserListView(ListAPIView):
             return User.objects.filter(role=RoleType.PATIENT)
         else:
             return User.objects.filter(id=user.id)
-
-
-class UserListView(ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = UserListSerializer
-    queryset = CoreUser.objects.all()
-    pagination_class = CustomLimitOffsetPagination
-    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-    filterset_fields = ("mobile",)
-    search_fields = ("first_name", "last_name", "mobile")
-    ordering = ("__created_at",)
-    ordering_fields = ("first_name", "__created_at")
-
-    @extend_schema(
-        responses=UserListSerializer(many=True),
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)

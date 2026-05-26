@@ -4,10 +4,10 @@ from . import views
 
 router = DefaultRouter()
 
-router.register(r'show', views.ShowViewSet, basename='show')
-router.register(r'booking', views.BookingViewSet, basename='booking')
+router.register(r"show", views.ShowViewSet, basename="show")
+router.register(r"booking", views.BookingViewSet, basename="booking")
 
-app_name = 'booking'
+app_name = "booking"
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -7,39 +7,40 @@ from common.serializers import GenericModelSerializer
 
 User = get_user_model()
 
+
 class ShowSerializer(GenericModelSerializer):
-    city=serializers.PrimaryKeyRelatedField(
+    city = serializers.PrimaryKeyRelatedField(
         queryset=City.objects.all(),
         required=False,
     )
-    state=serializers.PrimaryKeyRelatedField(
+    state = serializers.PrimaryKeyRelatedField(
         queryset=State.objects.all(),
         required=False,
     )
-    
+
     class Meta:
         model = Show
-        fields = GenericModelSerializer.Meta.fields +(
-            "id", 
-            "city", 
+        fields = GenericModelSerializer.Meta.fields + (
+            "id",
+            "city",
             "state",
             "address",
             "title",
-            "description"
+            "description",
         )
-        
+
 
 class BookingSerializer(GenericModelSerializer):
-    show=serializers.PrimaryKeyRelatedField(
+    show = serializers.PrimaryKeyRelatedField(
         queryset=Show.objects.all(),
         required=False,
     )
-    
+
     class Meta:
         model = Booking
-        fields = GenericModelSerializer.Meta.fields +(
-            "id", 
-            "user", 
+        fields = GenericModelSerializer.Meta.fields + (
+            "id",
+            "user",
             "status",
             "date",
             "title",
@@ -47,4 +48,4 @@ class BookingSerializer(GenericModelSerializer):
             "is_pass",
             "is_reserved",
         )
-        read_only_fields=["total_price"]
+        read_only_fields = ["total_price"]

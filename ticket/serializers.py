@@ -16,24 +16,24 @@ class CategorySerializer(GenericModelSerializer):
         allow_null=True,
         required=False,
     )
-    
+
     def update(self, instance, validated_data):
-        if 'price' in validated_data:
-            instance.price = validated_data.pop('price')
+        if "price" in validated_data:
+            instance.price = validated_data.pop("price")
         return super().update(instance, validated_data)
-    
+
     class Meta:
         model = Category
-        fields = GenericModelSerializer.Meta.fields +(
-            "id", 
-            "show", 
+        fields = GenericModelSerializer.Meta.fields + (
+            "id",
+            "show",
             "title",
             "stock",
-            "price"
+            "price",
         )
-        
-        
-class TicketSerializer(GenericModelSerializer):   
+
+
+class TicketSerializer(GenericModelSerializer):
     category = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
         allow_null=True,
@@ -49,12 +49,12 @@ class TicketSerializer(GenericModelSerializer):
         allow_null=True,
         required=False,
     )
-    
+
     class Meta:
         model = Ticket
-        fields = GenericModelSerializer.Meta.fields +(
-            "id", 
-            "category", 
+        fields = GenericModelSerializer.Meta.fields + (
+            "id",
+            "category",
             "booking",
             "seat",
             "code",

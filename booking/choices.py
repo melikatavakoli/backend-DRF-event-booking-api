@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Status(models.TextChoices):
     cancelled = "cancelled", "لغو شده"
     moved = "moved", "جابجا شده"

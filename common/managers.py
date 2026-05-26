@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from core.types import RoleType
+from core.choices import RoleType
 
 
 class SoftDeleteQuerySet(models.QuerySet):

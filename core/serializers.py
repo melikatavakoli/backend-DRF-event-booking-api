@@ -222,15 +222,3 @@ class ResetPasswordSerializer(serializers.Serializer):
         redis_conn = get_redis_connection("default")
         redis_conn.delete(f"verification_code:{self.validated_data['mobile']}")
         return user
-
-
-class UserListSerializer(GenericModelSerializer):
-    full_name = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = CoreUser
-        fields = GenericModelSerializer.Meta.fields + (
-            "mobile",
-            "full_name",
-            "role",
-        )

@@ -1,5 +1,5 @@
 from core.models import LoginAttempt
-from core.types import StatusType
+from core.choices import StatusType
 
 
 def _get_ip(request) -> str | None:

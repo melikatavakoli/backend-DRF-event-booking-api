@@ -10,5 +10,5 @@ router.register(r"category", views.CategoryViewSet, basename="category")
 router.register(r"ticket", views.TicketViewSet, basename="ticket")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]
