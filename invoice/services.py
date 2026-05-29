@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from invoice.models import Invoice
 
+
 def generate_invoice_number():
     year = timezone.now().year
     last_invoice = (
@@ -17,6 +18,7 @@ def generate_invoice_number():
     else:
         last_number = 0
     return f"INV-{year}-{last_number + 1:04d}"
+
 
 def generate_tracking_code():
     last_invoice = Invoice.objects.order_by("created_at").last()
