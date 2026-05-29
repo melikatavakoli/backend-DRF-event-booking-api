@@ -9,7 +9,7 @@ from rest_framework import serializers
 from common.serializers import GenericModelSerializer
 from core.models import CoreUser
 from .tasks import send_registry_sms, send_verification_sms
-from core.types import RoleType, StatusType
+from .choices import RoleType, StatusType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
 

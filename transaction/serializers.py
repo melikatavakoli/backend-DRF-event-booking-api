@@ -1,5 +1,8 @@
 from persiantools.jdatetime import JalaliDateTime
 from rest_framework import serializers
+
+from booking.models import Booking
+from ticket.serializers import TicketSerializer
 from transaction.models import Transaction, PaymentReceipt, DiscountCode
 
 
@@ -155,7 +158,6 @@ class TransactionCreateSerializer(serializers.Serializer):
     )
 
     def validate_booking_id(self, value):
-        from concert.models import Booking
 
         try:
             booking = Booking.objects.get(id=value)
@@ -201,7 +203,7 @@ class TransactionStatusUpdateSerializer(serializers.ModelSerializer):
         fields = ["id", "status", "description"]
 
     def validate_status(self, value):
-        from transaction.types import TransactionStatus
+        from .choices import TransactionStatus
 
         valid_statuses = [
             TransactionStatus.success,
@@ -378,8 +380,6 @@ class TransactionDetailSerializer(serializers.ModelSerializer):
     def get_tickets_detail(self, obj):
         if not obj.booking or not hasattr(obj.booking, "tickets"):
             return []
-
-        from concert.serializers import TicketSerializer
 
         tickets = obj.booking.tickets.all()
         return TicketSerializer(tickets, many=True).data

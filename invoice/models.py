@@ -29,11 +29,11 @@ class Invoice(GenericModel):
         null=True,
         blank=True,
     )
-    transaction = models.ForeignKey(
+    transaction = models.OneToOneField(
         Transaction,
         related_name="invoices",
         verbose_name="transaction",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
@@ -42,7 +42,7 @@ class Invoice(GenericModel):
     )
     tracking_code = models.CharField(max_length=50, blank=True, null=True)
     issue_date = models.DateTimeField(default=timezone.now)
-    description = models.CharFIeld(max_length=1000, blank=True, null=True)
+    description = models.CharField(max_length=1000, blank=True, null=True)
     status = models.CharField(
         max_length=10,
         choices=InvoiceStatus.choices,
@@ -90,17 +90,27 @@ class Invoice(GenericModel):
         )
         self.save(update_fields=["subtotal", "tax_amount", "final_amount"])
 
+    def mark_as_paid(self, transaction=None):
+        """علامت‌گذاری فاکتور به عنوان پرداخت شده"""
+        self.status = InvoiceStatus.paid
+        if transaction:
+            self.transaction = transaction
+        self.save()
+
+    def mark_as_cancelled(self):
+        """لغو فاکتور"""
+        self.status = InvoiceStatus.cancelled
+        self.save()
+
     def save(self, *args, **kwargs):
         from invoice.services import (
             generate_invoice_number,
             generate_tracking_code,
         )
-
         if not self.invoice_number:
             self.invoice_number = generate_invoice_number()
         if not self.tracking_code:
             self.tracking_code = generate_tracking_code()
-
         super().save(*args, **kwargs)
 
 
@@ -115,7 +125,7 @@ class InvoiceItem(GenericModel):
         Ticket,
         related_name="invoice_items",
         verbose_name="ticket",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
@@ -141,7 +151,6 @@ class InvoiceItem(GenericModel):
         verbose_name = "invoice_item"
         verbose_name_plural = "invoice_items"
         db_table = "invoice_item"
-        ordering = ["row_number"]
 
     def __str__(self):
         return f"{self.seat_number} - {self.category_name}"
@@ -154,21 +163,34 @@ class InvoiceItem(GenericModel):
         if self.discount_percent > 0:
             discount = base_price * (self.discount_percent / Decimal("100"))
         elif self.discount_amount > 0:
-            discount = self.discount_amount
+            discount = Decimal(self.discount_amount)
+
+        if discount > base_price:
+            discount = base_price
 
         price_after_discount = base_price - discount
 
         tax = price_after_discount * (self.tax_percent / Decimal("100"))
+        tax = tax.quantize(Decimal("0"))
 
-        self.discount_amount = discount
+        self.discount_amount = discount.quantize(Decimal("0"))
         self.tax_amount = tax
-        self.final_price = price_after_discount + tax
+        self.final_price = (price_after_discount + tax).quantize(Decimal("0"))
 
         return self.final_price
+
+    def populate_from_ticket(self, ticket):
+        """Populate invoice item from ticket data"""
+        if ticket:
+            self.ticket = ticket
+            if ticket.category:
+                self.category_name = ticket.category.title
+                self.unit_price = Decimal(ticket.category.price or 0)
+            if ticket.seat:
+                self.seat_number = ticket.seat.number or str(ticket.seat.id)
 
     def save(self, *args, **kwargs):
         self.calculate_final_price()
         super().save(*args, **kwargs)
         if self.invoice:
             self.invoice.update_totals()
-

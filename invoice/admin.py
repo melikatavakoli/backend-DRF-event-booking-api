@@ -1,12 +1,5 @@
 from django.contrib import admin
-from .models import Invoice, Item
-
-
-class ItemInlineAdmin(admin.TabularInline):
-    model = Item
-    extra = 1
-    readonly_fields = ["total_price", "final_price"]
-
+from .models import Invoice, InvoiceItem
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
@@ -14,26 +7,22 @@ class InvoiceAdmin(admin.ModelAdmin):
         "invoice_number",
         "tracking_code",
         "user",
-        "order",
         "final_amount",
         "status",
         "issue_date",
     ]
-    list_filter = ["status", "issue_date", "created_at"]
+    list_filter = ["status", "issue_date", "_created_at"]
     search_fields = [
         "invoice_number",
         "tracking_code",
-        "user__username",
-        "order__id",
     ]
     readonly_fields = [
         "invoice_number",
         "tracking_code",
-        "created_at",
-        "updated_at",
+        "_created_at",
+        "_updated_at",
     ]
-    inlines = [ItemInlineAdmin]
-    ordering = ["-created_at"]
+    ordering = ["_created_at"]
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
@@ -54,9 +43,9 @@ class InvoiceAdmin(admin.ModelAdmin):
         self.message_user(request, f"{updated} invoice(s) marked as unpaid.")
 
 
-@admin.register(Item)
+@admin.register(InvoiceItem)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ["id", "invoice", "product_code", "quantity", "unit_price"]
-    list_filter = ["created_at"]
-    search_fields = ["product_code", "description", "invoice__invoice_number"]
-    readonly_fields = ["created_at", "updated_at"]
+    list_display = ["id", "invoice","quantity", "unit_price"]
+    list_filter = ["_created_at"]
+    search_fields = ["description", "invoice__invoice_number"]
+    readonly_fields = ["_created_at", "_updated_at"]

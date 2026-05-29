@@ -5,7 +5,7 @@ from . import views
 router = DefaultRouter()
 app_name = "invoice"
 
-router.register("invoices", views.InvoiceViewSet)
+router.register("invoices", views.InvoiceViewSet, basename="invoices")
 
 urlpatterns = [
     path("api/", include(router.urls)),

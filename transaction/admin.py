@@ -35,11 +35,9 @@ class PaymentReceiptAdmin(admin.ModelAdmin):
 class TransactionAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "colored_status",
         "user",
         "amount",
         "bank_name",
-        "order",
         "payment_receipt",
     )
     list_filter = (
@@ -47,27 +45,9 @@ class TransactionAdmin(admin.ModelAdmin):
         "gateway",
     )
     search_fields = (
-        "user__username",
         "user__email",
         "user__mobile",
-        "order__order_no",
         "ref_number",
         "track_id",
     )
-    ordering = ("-created_at",)
-
-    def colored_status(self, obj):
-        colors = {
-            "APPROVED": "green",
-            "REJECTED": "red",
-            "FAILED": "orange",
-            "CANCELLED": "gray",
-            "PENDING": "blue",
-            "REFUNDED": "purple",
-        }
-        color = colors.get(obj.status, "black")
-        return format_html(
-            f'<strong style="color:{color};">{obj.get_status_display()}</strong>'
-        )
-
-    colored_status.short_description = "Status"
+    ordering = ("_created_at",)

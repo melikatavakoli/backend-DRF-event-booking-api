@@ -6,7 +6,7 @@ from django.utils import timezone
 from booking.models import Booking
 from transaction.utils import generate_random_transaction_no
 from common.models import GenericModel
-from transaction.types import TransactionStatus
+from .choices import TransactionStatus
 
 User = get_user_model()
 

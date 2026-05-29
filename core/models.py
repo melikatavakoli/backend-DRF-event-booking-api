@@ -1,7 +1,7 @@
 from address.models import City, Country, State
 from common.managers import UserManager
 from django.db import models
-from core.types import RoleType, StatusType
+from .choices import RoleType, StatusType
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from uuid import uuid4

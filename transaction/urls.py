@@ -6,8 +6,8 @@ from . import views
 router = DefaultRouter()
 app_name = "transaction"
 
-router.register("payment-receipts", views.PaymentReceiptViewSet)
-router.register("transactions", views.TransactionViewSet)
+router.register("payment-receipts", views.PaymentReceiptViewSet, basename="payment-receipt",)
+router.register("transactions", views.TransactionViewSet, basename="transaction",)
 
 urlpatterns = [
     path("", include(router.urls)),
