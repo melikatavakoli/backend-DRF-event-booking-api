@@ -49,4 +49,4 @@ class Seat(GenericModel):
         db_table = "seat"
         
     def __str__(self):
-        return self.title or "none"
+        return f"{self.prefix} {self.suffix}".strip() or "Unnamed Seat"
