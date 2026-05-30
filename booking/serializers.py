@@ -35,12 +35,11 @@ class BookingSerializer(GenericModelSerializer):
         queryset=Show.objects.all(),
         required=False,
     )
-
+    
     class Meta:
         model = Booking
         fields = GenericModelSerializer.Meta.fields + (
             "id",
-            "user",
             "status",
             "date",
             "title",
@@ -49,4 +48,4 @@ class BookingSerializer(GenericModelSerializer):
             "is_reserved",
             "show",
         )
-        read_only_fields = ["total_price", "usesr"]
+        read_only_fields = ["total_price"]

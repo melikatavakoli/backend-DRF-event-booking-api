@@ -1,5 +1,6 @@
 from persiantools.jdatetime import JalaliDateTime
 from rest_framework import serializers
+from datetime import datetime
 
 from booking.models import Booking
 from ticket.serializers import TicketSerializer
@@ -30,7 +31,12 @@ class PaymentReceiptSerializer(serializers.ModelSerializer):
         return JalaliDateTime.to_jalali(obj.uploaded_at).strftime("%Y/%m/%d %H:%M")
 
     def get_receipt_url(self, obj):
-        return obj.image.url if obj.image else None
+        request = self.context.get("request")
+
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+
+        return None
 
     def get_verified_by_name(self, obj):
         if obj.verified_by:
@@ -150,49 +156,32 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class TransactionCreateSerializer(serializers.Serializer):
-    booking_id = serializers.IntegerField()
+    booking_id = serializers.UUIDField()
     discount_code = serializers.CharField(
         max_length=50, required=False, allow_blank=True
     )
 
     def validate_booking_id(self, value):
-
+        """Convert UUID to actual Booking instance"""
+        request = self.context.get('request')
         try:
-            booking = Booking.objects.get(id=value)
+            booking = Booking.objects.get(id=value, user=request.user)
+            return booking
         except Booking.DoesNotExist:
-            raise serializers.ValidationError("رزرو مورد نظر یافت نشد")
-
-        user = self.context["request"].user
-        if booking.user != user:
-            raise serializers.ValidationError("این رزرو متعلق به شما نیست")
-
-        if booking.is_paid:
-            raise serializers.ValidationError("این رزرو قبلاً پرداخت شده است")
-
-        from django.utils import timezone
-
-        if booking.expires_at and timezone.now() > booking.expires_at:
-            raise serializers.ValidationError("زمان رزرو شما به اتمام رسیده است")
-
-        self.booking = booking
-        return value
-
+            raise serializers.ValidationError("Booking not found or does not belong to you")
+    
     def validate_discount_code(self, value):
-        if not value:
-            return None
-
-        try:
-            discount = DiscountCode.objects.get(code=value.upper(), is_active=True)
-        except DiscountCode.DoesNotExist:
-            raise serializers.ValidationError("کد تخفیف نامعتبر است")
-
-        if hasattr(self, "booking"):
-            valid, message = discount.is_valid(self.booking.total_amount)
-            if not valid:
-                raise serializers.ValidationError(message)
-
-        self.discount = discount
-        return value
+        """Validate and return discount object"""
+        if value:
+            from .models import DiscountCode
+            try:
+                discount = DiscountCode.objects.get(code=value, is_active=True)
+                if not discount.is_valid():
+                    raise serializers.ValidationError("Discount code has expired")
+                return discount
+            except DiscountCode.DoesNotExist:
+                raise serializers.ValidationError("Invalid discount code")
+        return None
 
 
 class TransactionStatusUpdateSerializer(serializers.ModelSerializer):
@@ -308,7 +297,21 @@ class TransactionUserListSerializer(serializers.ModelSerializer):
         return str(obj.calculated_amount)
 
     def get_created_at_jalali(self, obj):
-        return JalaliDateTime.to_jalali(obj.created_at).strftime("%Y/%m/%d %H:%M")
+        created_at = obj.created_at
+        if isinstance(created_at, str):
+            try:
+                created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S.%f")
+            except (ValueError, TypeError):
+                try:
+                    created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+                except (ValueError, TypeError):
+                    return None
+        elif created_at is None:
+            return None
+        try:
+            return JalaliDateTime.to_jalali(created_at).strftime("%Y/%m/%d %H:%M")
+        except Exception as e:
+            return None
 
     def get_concert_name(self, obj):
         if obj.booking and hasattr(obj.booking, "concert"):

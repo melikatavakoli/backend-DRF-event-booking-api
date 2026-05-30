@@ -1,8 +1,13 @@
+from decimal import Decimal
+
 import requests
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, filters, viewsets
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, inline_serializer
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import status, filters, viewsets, parsers
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
@@ -33,12 +38,17 @@ User = get_user_model()
 class PaymentReceiptViewSet(viewsets.ModelViewSet):
     serializer_class = PaymentReceiptSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [parsers.FormParser, parsers.MultiPartParser]
 
     def get_queryset(self):
         user = self.request.user
+
         if user.is_staff or getattr(user, "role", None) == "admin":
-            return PaymentReceipt.objects.all()
-        return PaymentReceipt.objects.filter(user=user)
+            return PaymentReceipt.objects.all().order_by("-uploaded_at")
+
+        return PaymentReceipt.objects.filter(
+            user=user
+        ).order_by("-uploaded_at")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -70,26 +80,67 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
 
 class CreateTransactionAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [parsers.FormParser, parsers.MultiPartParser]
 
+    @extend_schema(
+        request=inline_serializer(
+            name='TransactionCreateRequest',
+            fields={
+                'booking_id': serializers.CharField(help_text='UUID of the booking'),
+                'discount_code': serializers.CharField(help_text='Discount code (optional)', required=False),
+            }
+        ),
+        responses={
+            201: inline_serializer(
+                name='TransactionCreateResponse',
+                fields={
+                    'message': serializers.CharField(),
+                    'transaction': serializers.DictField(),
+                }
+            ),
+            400: inline_serializer(
+                name='TransactionErrorResponse',
+                fields={
+                    'message': serializers.CharField(),
+                }
+            ),
+        },
+        description='Create a new transaction for a booking'
+    )
     def post(self, request):
+        # Debug: Print what we received
+        print("Request data:", request.data)
+        print("Booking ID:", request.data.get('booking_id'))
+        
         serializer = TransactionCreateSerializer(
             data=request.data, context={"request": request}
         )
 
         if not serializer.is_valid():
+            print("Serializer errors:", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # Now booking is an actual Booking object, not a UUID
         booking = serializer.validated_data["booking_id"]
-        payment_method = serializer.validated_data["payment_method"]
-        discount = serializer.validated_data.get("discount")
+        discount = serializer.validated_data.get("discount_code")
+        
+        print(f"Booking object: {booking}")
+        print(f"Booking total_price: {booking.total_price}")
 
-        final_amount = booking.total_amount
-        discount_amount = 0
+        # Convert total_price to Decimal (since it's stored as CharField)
+        try:
+            final_amount = Decimal(str(booking.total_price)) if booking.total_price else Decimal('0')
+        except (TypeError, ValueError):
+            final_amount = Decimal('0')
+        
+        discount_amount = Decimal('0')
 
         if discount:
-            final_amount = discount.apply_discount(booking.total_amount)
-            discount_amount = booking.total_amount - final_amount
+            # Assuming discount.apply_discount returns a Decimal
+            discount_amount = discount.apply_discount(final_amount)
+            final_amount = final_amount - discount_amount
 
+        # Check for existing pending transaction
         if Transaction.objects.filter(
             booking=booking, status=TransactionStatus.pending
         ).exists():
@@ -98,79 +149,34 @@ class CreateTransactionAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Create transaction
         transaction = Transaction.objects.create(
             user=request.user,
             booking=booking,
             amount=final_amount,
-            final_amount=final_amount,
             discount_amount=discount_amount,
-            payment_method=payment_method,
             status=TransactionStatus.pending,
         )
 
         if discount:
             discount.use()
 
-        if payment_method == "online":
-            return self.request_online_payment(transaction, request)
-
+        # Return response with transaction data
         return Response(
             {
                 "message": "تراکنش با موفقیت ایجاد شد. لطفاً رسید پرداخت را آپلود کنید.",
-                "transaction": TransactionSerializer(transaction).data,
+                "transaction": {
+                    "id": str(transaction.id),
+                    "transaction_no": transaction.transaction_no,
+                    "amount": str(transaction.amount),
+                    "status": transaction.status,
+                    "booking_id": str(transaction.booking.id),
+                }
             },
             status=status.HTTP_201_CREATED,
         )
-
-    def request_online_payment(self, transaction, request):
-        data = {
-            "merchant": settings.ZIBAL_MERCHANT,
-            "amount": int(transaction.amount * 10),
-            "callbackUrl": request.build_absolute_uri("/api/v1/transaction/callback/"),
-            "description": f"پرداخت بلیط کنسرت - شماره تراکنش {transaction.transaction_no}",
-        }
-
-        try:
-            response = requests.post(
-                "https://gateway.zibal.ir/v1/request", json=data, timeout=30
-            )
-            result = response.json()
-
-            if result.get("result") == 100:
-                track_id = result.get("trackId")
-                transaction.track_id = track_id
-                transaction.save(update_fields=["track_id"])
-
-                payment_url = f"https://gateway.zibal.ir/start/{track_id}"
-
-                return Response(
-                    {
-                        "payment_url": payment_url,
-                        "track_id": track_id,
-                        "transaction": TransactionSerializer(transaction).data,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                transaction.status = TransactionStatus.failed
-                transaction.save()
-                return Response(
-                    {
-                        "message": "خطا در ارتباط با درگاه پرداخت",
-                        "result": result,
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        except Exception as e:
-            transaction.status = TransactionStatus.failed
-            transaction.save()
-            return Response(
-                {"message": f"خطا: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-
+        
+        
 class VerifyTransactionAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -256,36 +262,57 @@ class VerifyCardToCardPaymentAPIView(APIView):
 
 class UploadPaymentReceiptAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [parsers.FormParser, parsers.MultiPartParser]
 
-    def post(self, request, transaction_id):
+    def post(self, request, transaction_id):  # Add transaction_id parameter
+        """Upload payment receipt for a specific transaction"""
+        
+        # Get the transaction
         try:
-            transaction = Transaction.objects.get(id=transaction_id, user=request.user)
+            transaction = Transaction.objects.get(
+                id=transaction_id, 
+                user=request.user
+            )
         except Transaction.DoesNotExist:
-            return Response({"message": "تراکنش یافت نشد"}, status=404)
-
-        if transaction.is_successful:
-            return Response({"message": "این تراکنش قبلاً موفق شده است"}, status=400)
-
-        image = request.FILES.get("image")
+            return Response(
+                {"message": "تراکنش یافت نشد"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if transaction is pending
+        if transaction.status != TransactionStatus.pending:
+            return Response(
+                {"message": "این تراکنش قابل پرداخت نیست"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the uploaded image
+        image = request.FILES.get("payment_receipt_id")
         if not image:
-            return Response({"message": "لطفاً تصویر رسید را آپلود کنید"}, status=400)
-
-        receipt = PaymentReceipt.objects.create(
+            return Response(
+                {"message": "لطفاً تصویر رسید را آپلود کنید"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create payment receipt
+        payment_receipt = PaymentReceipt.objects.create(
             user=request.user,
             image=image,
-            description=request.data.get("description", ""),
+            description=f"رسید پرداخت تراکنش {transaction.transaction_no}",
+            uploaded_at=timezone.now(),
+            verified=False
         )
-
-        transaction.payment_receipt = receipt
+        
+        # Link to transaction
+        transaction.payment_receipt = payment_receipt
         transaction.save()
-
-        return Response(
-            {
-                "message": "رسید با موفقیت آپلود شد. پس از تأیید ادمین، بلیط‌ها صادر می‌شوند.",
-                "receipt": PaymentReceiptSerializer(receipt).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        
+        return Response({
+            "message": "رسید پرداخت با موفقیت آپلود شد",
+            "payment_receipt_id": str(payment_receipt.id),
+            "transaction_id": str(transaction.id),
+            "receipt_url": payment_receipt.image.url if payment_receipt.image else None
+        }, status=status.HTTP_201_CREATED)
 
 
 class ApplyDiscountCodeAPIView(APIView):
@@ -375,8 +402,8 @@ class TransactionUserListView(ListAPIView):
     pagination_class = CustomLimitOffsetPagination
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ["status"]
-    ordering_fields = ["created_at", "amount", "status"]
-    ordering = ["-created_at"]
+    ordering_fields = ["_created_at", "amount", "status"]
+    ordering = ["-_created_at"]
 
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user).select_related(

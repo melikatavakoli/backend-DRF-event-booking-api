@@ -102,8 +102,8 @@ class Transaction(GenericModel):
     @property
     def calculated_amount(self):
         """مبلغ واقعی تراکنش: از رزرو گرفته می‌شه"""
-        if self.booking and self.booking.total_amount:
-            return Decimal(str(self.booking.total_amount))
+        if self.booking and self.booking.total_price:
+            return Decimal(str(self.booking.total_price))
         return Decimal(str(self.amount)) if self.amount else Decimal("0.00")
 
     @property

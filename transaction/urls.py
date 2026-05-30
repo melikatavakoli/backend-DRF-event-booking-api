@@ -27,7 +27,7 @@ urlpatterns = [
         name="transaction-callback",
     ),
     path(
-        "upload-receipt/<int:transaction_id>/",
+        "upload-receipt/<uuid:transaction_id>/",
         views.UploadPaymentReceiptAPIView.as_view(),
         name="upload-receipt",
     ),
@@ -57,12 +57,12 @@ urlpatterns = [
         name="user-transactions",
     ),
     path(
-        "transaction/<int:id>/",
+        "transaction/<uuid:id>/",
         views.TransactionDetailAPIView.as_view(),
         name="transaction-detail",
     ),
     path(
-        "admin/update-transaction/<int:transaction_id>/",
+        "admin/update-transaction/<uuid:transaction_id>/",
         views.AdminTransactionStatusUpdateAPIView.as_view(),
         name="admin-update-transaction",
     ),

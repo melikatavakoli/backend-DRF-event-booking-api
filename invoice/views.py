@@ -40,9 +40,9 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         "invoice_number",
         "issue_date",
         "final_amount",
-        "created_at",
+        "_created_at",
     ]
-    ordering = ["-created_at"]
+    ordering = ["-_created_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -213,7 +213,7 @@ class CreateInvoiceFromBookingAPIView(APIView):
                 if transaction and transaction.is_successful
                 else InvoiceStatus.unpaid
             ),
-            issue_date=booking.created_at,
+            issue_date=booking._created_at,
         )
 
         for ticket in booking.tickets.all():
@@ -254,9 +254,9 @@ class UserInvoiceListView(generics.ListAPIView):
         "invoice_number",
         "issue_date",
         "final_amount",
-        "created_at",
+        "_created_at",
     ]
-    ordering = ["-created_at"]
+    ordering = ["-_created_at"]
 
     def get_queryset(self):
         return Invoice.objects.filter(user=self.request.user).select_related(
@@ -284,9 +284,9 @@ class AdminInvoiceListView(generics.ListAPIView):
         "invoice_number",
         "issue_date",
         "final_amount",
-        "created_at",
+        "_created_at",
     ]
-    ordering = ["-created_at"]
+    ordering = ["-_created_at"]
 
     def get_queryset(self):
         user = self.request.user

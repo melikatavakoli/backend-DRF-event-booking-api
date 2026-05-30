@@ -1,7 +1,7 @@
 def issue_tickets(self):
     """صدور بلیط‌ها بعد از پرداخت موفق"""
 
-    from concert.models import Ticket
+    from ticket.models import Ticket
 
     if not self.booking:
         return

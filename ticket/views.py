@@ -4,21 +4,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.filters import OrderingFilter, SearchFilter
 
-from ticket.models import Category, Ticket
-from ticket.serializers import CategorySerializer, TicketSerializer
-from core.permissions import IsAdminRole, IsStaffOrAdminRole
-
-
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    pagination_class = CustomLimitOffsetPagination
-    filter_backends = (DjangoFilterBackend, OrderingFilter, SearchFilter)
-
-    def get_permissions(self):
-        if self.action in ["create", "update", "partial_update", "destroy"]:
-            return [IsAdminRole()]
-        return [AllowAny()]
+from ticket.models import Ticket
+from ticket.serializers import TicketSerializer
+from core.permissions import IsStaffOrAdminRole
 
 
 class TicketViewSet(viewsets.ModelViewSet):

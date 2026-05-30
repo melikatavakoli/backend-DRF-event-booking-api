@@ -26,8 +26,8 @@ class InvoiceAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
-            obj.created_by = request.user
-        obj.updated_by = request.user
+            obj._created_by = request.user
+        obj._updated_by = request.user
         super().save_model(request, obj, form, change)
 
     actions = ["mark_as_paid", "mark_as_unpaid"]

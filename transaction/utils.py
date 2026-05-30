@@ -1,9 +1,6 @@
 import random
 from persiantools.jdatetime import JalaliDate
 
-
-
-
 def generate_random_transaction_no():
     today = JalaliDate.today()
     year = today.year % 100

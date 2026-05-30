@@ -91,7 +91,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "discount_amount",
             "final_amount",
             "items",
-            "created_at",
+            "_created_at",
             "created_at_jalali",
         ]
         read_only_fields = [
@@ -152,8 +152,8 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return None
 
     def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return JalaliDateTime.to_jalali(obj.created_at).strftime(
+        if obj._created_at:
+            return JalaliDateTime.to_jalali(obj._created_at).strftime(
                 "%Y/%m/%d %H:%M"
             )
         return None
@@ -162,6 +162,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
 class InvoiceListSerializer(serializers.ModelSerializer):
     user_full_name = serializers.SerializerMethodField()
     issue_date_jalali = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(source='_created_at', read_only=True)
     created_at_jalali = serializers.SerializerMethodField()
     concert_name = serializers.SerializerMethodField()
 
@@ -194,8 +195,8 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         return None
 
     def get_created_at_jalali(self, obj):
-        if obj.created_at:
-            return JalaliDateTime.to_jalali(obj.created_at).strftime(
+        if obj._created_at:
+            return JalaliDateTime.to_jalali(obj._created_at).strftime(
                 "%Y/%m/%d %H:%M"
             )
         return None

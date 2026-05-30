@@ -21,7 +21,7 @@ def generate_invoice_number():
 
 
 def generate_tracking_code():
-    last_invoice = Invoice.objects.order_by("created_at").last()
+    last_invoice = Invoice.objects.order_by("_created_at").last()
     if not last_invoice or not last_invoice.tracking_code:
         return "TRK-00001"
     try:
