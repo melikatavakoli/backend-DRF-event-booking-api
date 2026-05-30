@@ -73,6 +73,7 @@ class Transaction(GenericModel):
     card_number = models.CharField(max_length=50, blank=True, null=True)
     ref_number = models.CharField(max_length=50, blank=True, null=True)
     track_id = models.CharField(max_length=300, blank=True, null=True)
+    fee = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     gateway = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(
         max_length=300,
@@ -101,24 +102,36 @@ class Transaction(GenericModel):
     @property
     def calculated_amount(self):
         """مبلغ واقعی تراکنش: از رزرو گرفته می‌شه"""
-        if self.booking:
-            return Decimal(self.booking.total_amount or 0)
-        return self.amount or Decimal("0.00")
+        if self.booking and self.booking.total_amount:
+            return Decimal(str(self.booking.total_amount))
+        return Decimal(str(self.amount)) if self.amount else Decimal("0.00")
 
     @property
-    def fee(self):
-        """کارمزد تراکنش: 0.5٪ برای درگاه آنلاین"""
-        if self.payment_method == "online":
-            return (self.calculated_amount * Decimal("0.005")).quantize(
-                Decimal("0"), rounding=ROUND_HALF_UP
+    def calculated_fee(self):
+        """محاسبه کارمزد تراکنش: فقط برای درگاه زیبال"""
+        # Only apply fee for Zibal gateway
+        if self.gateway and self.gateway.lower() == 'zibal':
+            fee_amount = (self.calculated_amount * Decimal("0.005")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
             )
-        return Decimal("0")
+            return fee_amount
+        return Decimal("0.00")
 
     @property
     def total_amount_with_fee(self):
         """مجموع مبلغ تراکنش + کارمزد"""
-        return (self.calculated_amount + self.fee).quantize(
-            Decimal("0"), rounding=ROUND_HALF_UP
+        return (self.calculated_amount + self.calculated_fee).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+    @property
+    def net_amount(self):
+        """مبلغ قابل پرداخت نهایی (مبلغ کل - تخفیف + کارمزد)"""
+        base_amount = self.calculated_amount
+        discount = Decimal(str(self.discount_amount)) if self.discount_amount else Decimal("0")
+        amount_after_discount = base_amount - discount
+        return (amount_after_discount + self.calculated_fee).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
         )
 
     @property
@@ -133,29 +146,69 @@ class Transaction(GenericModel):
     def is_failed(self):
         return self.status == TransactionStatus.failed
 
+    @property
+    def is_online_payment(self):
+        """آیا پرداخت آنلاین است (فقط زیبال)"""
+        return self.gateway and self.gateway.lower() == 'zibal'
+
+    @property
+    def is_card_to_card(self):
+        """آیا پرداخت کارت به کارت است"""
+        return self.gateway and self.gateway.lower() == 'card_to_card'
+
+    @property
+    def payment_method_display(self):
+        """نمایش روش پرداخت (محاسبه شده از gateway)"""
+        if not self.gateway:
+            return "نامشخص"
+        
+        gateway_mapping = {
+            'zibal': 'درگاه زیبال',
+            'card_to_card': 'کارت به کارت',
+            'cash': 'نقدی',
+            'pos': 'دستگاه POS',
+        }
+        return gateway_mapping.get(self.gateway.lower(), self.gateway)
+
+    def update_fee(self):
+        """بروزرسانی مقدار کارمزد در فیلد fee"""
+        self.fee = self.calculated_fee
+        if not self.pk:
+            return
+        self.save(update_fields=['fee'])
+
     def mark_as_successful(self, ref_number=None, track_id=None, card_number=None):
         """علامت‌گذاری تراکنش به عنوان موفق"""
-        from concert.models import Ticket
-
+        from ticket.models import Ticket
+        
         self.status = TransactionStatus.success
         self.paid_at = timezone.now()
+        
         if ref_number:
             self.ref_number = ref_number
         if track_id:
             self.track_id = track_id
         if card_number:
             self.card_number = card_number
+        
+        # Update fee before saving
+        self.fee = self.calculated_fee
         self.save()
+        
         if self.booking and not self.booking.is_paid:
             self.booking.is_paid = True
             self.booking.payment_time = timezone.now()
             self.booking.save()
-            for ticket_data in self.booking.tickets_data.all():
-                Ticket.objects.create(
-                    booking=self.booking,
-                    category=ticket_data.category,
-                    no_seat=ticket_data.seat_number,
-                )
+            
+            # Create tickets if tickets_data exists
+            if hasattr(self.booking, 'tickets_data'):
+                for ticket_data in self.booking.tickets_data.all():
+                    Ticket.objects.create(
+                        booking=self.booking,
+                        category=ticket_data.category,
+                        no_seat=ticket_data.seat_number,
+                    )
+            
             self.send_payment_notification()
 
     def mark_as_failed(self, reason=None):
@@ -175,44 +228,34 @@ class Transaction(GenericModel):
         """
         تولید شماره تراکنش خودکار و محاسبه مبلغ نهایی
         """
+        # Generate transaction number if not exists
         if not self.transaction_no:
             self.transaction_no = generate_random_transaction_no()
-
-        if self.booking and not self.final_amount:
-            self.final_amount = self.booking.total_amount - self.discount_amount
-            self.amount = self.final_amount
-
-        if self.final_amount and not self.amount:
-            self.amount = self.final_amount
-
+        
+        # Set amount from booking if not provided
+        if self.booking and not self.amount:
+            self.amount = self.calculated_amount
+        
+        # Calculate and set fee
+        self.fee = self.calculated_fee
+        
         super().save(*args, **kwargs)
-
-        if self.is_successful and self.booking and not self.booking.tickets_issued:
-            self.issue_tickets()
-
-    def send_payment_notification(self):
-        """ارسال ایمیل/پیامک به کاربر"""
-        from concert.notifications import send_ticket_email
-
-        if self.user and self.user.email:
-            send_ticket_email(self.user, self.booking)
-
+        
     def get_payment_link(self, request):
-        """دریافت لینک پرداخت برای درگاه آنلاین"""
-        if self.payment_method != "online":
+        """دریافت لینک پرداخت برای درگاه زیبال"""
+        if not self.is_online_payment:
             return None
-        from concert.payment_gateways import create_zarinpal_payment
-
-        return create_zarinpal_payment(self, request)
 
     def verify_card_to_card_payment(self, receipt_id, admin_user):
         """تأیید پرداخت کارت به کارت توسط ادمین"""
-        if self.payment_method != "card_to_card":
+        if not self.is_card_to_card:
             raise ValueError("این روش پرداخت برای تراکنش کارت به کارت نیست")
+        
         try:
             receipt = PaymentReceipt.objects.get(id=receipt_id)
         except PaymentReceipt.DoesNotExist:
             raise ValueError("رسید پرداخت یافت نشد")
+        
         self.payment_receipt = receipt
         self.mark_as_successful()
         receipt.verified = True
@@ -237,7 +280,7 @@ class DiscountCode(GenericModel):
 
     class Meta:
         verbose_name = "discount_code"
-        verbose_name_plural = "discount_code"
+        verbose_name_plural = "discount_codes"
         db_table = "discount_code"
 
     def __str__(self):
@@ -266,12 +309,17 @@ class DiscountCode(GenericModel):
 
     def apply_discount(self, amount):
         """اعمال تخفیف روی مبلغ"""
+        amount_decimal = Decimal(str(amount))
+        
         if self.discount_amount > 0:
-            return max(0, amount - self.discount_amount)
+            discount = Decimal(str(self.discount_amount))
+            return max(Decimal("0"), amount_decimal - discount)
         elif self.discount_percent > 0:
-            discount = amount * (self.discount_percent / 100)
-            return amount - discount
-        return amount
+            discount_percent = Decimal(str(self.discount_percent))
+            discount = amount_decimal * (discount_percent / Decimal("100"))
+            return (amount_decimal - discount).quantize(Decimal("0"), rounding=ROUND_HALF_UP)
+        
+        return amount_decimal
 
     def use(self):
         """افزایش تعداد استفاده"""

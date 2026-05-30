@@ -6,10 +6,11 @@ from rest_framework.permissions import AllowAny
 from common.paginations import CustomLimitOffsetPagination
 from booking.models import Booking, Show
 from booking.serializers import BookingSerializer, ShowSerializer
+from common.views import BaseModelViewSet
 from core.permissions import IsAdminRole, IsStaffOrAdminRole
 
 
-class ShowViewSet(viewsets.ModelViewSet):
+class ShowViewSet(BaseModelViewSet):
     queryset = Show.objects.all()
     serializer_class = ShowSerializer
     pagination_class = CustomLimitOffsetPagination
@@ -21,7 +22,7 @@ class ShowViewSet(viewsets.ModelViewSet):
         return [AllowAny()]
 
 
-class BookingViewSet(viewsets.ModelViewSet):
+class BookingViewSet(BaseModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     pagination_class = CustomLimitOffsetPagination

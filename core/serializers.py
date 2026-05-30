@@ -80,7 +80,6 @@ class RegisterSerializer(serializers.Serializer):
             first_name=data.get("first_name", ""),
             last_name=data.get("last_name", ""),
             role=RoleType.PATIENT,
-            is_verified=True,
             status=StatusType.ACTIVE,
         )
         redis_conn = get_redis_connection("default")
@@ -159,7 +158,7 @@ class LoginSerializer(serializers.Serializer):
         password = data.get("password")
 
         try:
-            user = CoreUser.objects.get(email=mobile)
+            user = CoreUser.objects.get(mobile=mobile)
         except CoreUser.DoesNotExist:
             raise serializers.ValidationError("کاربری با این موبایل یافت نشد.")
         if user.status != StatusType.ACTIVE:

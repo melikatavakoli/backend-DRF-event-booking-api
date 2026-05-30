@@ -20,7 +20,7 @@ class SoftDeleteListFilter(admin.SimpleListFilter):
         return queryset
 
 
-class BaseAdmin(ImportExportModelAdmin):
+class BaseAdmin(AuditlogHistoryAdminMixin, ImportExportModelAdmin):
     show_auditlog_history_link = True
     actions = ["hard_delete_selected", "restore_selected"]
     list_filter = (SoftDeleteListFilter,)
@@ -35,7 +35,9 @@ class BaseAdmin(ImportExportModelAdmin):
             with transaction.atomic():
                 queryset.hard_delete()
             self.message_user(
-                request, f"{count} record(s) permanently deleted.", messages.SUCCESS
+                request,
+                f"{count} record(s) permanently deleted.",
+                messages.SUCCESS,
             )
         except ProtectedError:
             self.message_user(

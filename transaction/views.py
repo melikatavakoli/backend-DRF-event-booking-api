@@ -323,7 +323,6 @@ class ApplyDiscountCodeAPIView(APIView):
                 "discount_code": discount.code,
                 "original_amount": str(booking.total_amount),
                 "discount_amount": str(booking.total_amount - final_amount),
-                "final_amount": str(final_amount),
             },
             status=status.HTTP_200_OK,
         )
@@ -359,8 +358,8 @@ class TransactionAdminListView(ListAPIView):
         "user__first_name",
         "user__last_name",
     ]
-    filterset_fields = ["status", "payment_method"]
-    ordering_fields = ["amount", "status", "created_at", "final_amount"]
+    filterset_fields = ["status"]
+    ordering_fields = ["amount", "status", "created_at",]
     ordering = ["-created_at"]
 
     def get_queryset(self):

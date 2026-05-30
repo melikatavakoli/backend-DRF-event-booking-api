@@ -4,7 +4,7 @@ from pathlib import Path
 from celery.schedules import crontab
 from dotenv import dotenv_values
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = {
     **dotenv_values(BASE_DIR / ".env"),
@@ -65,6 +65,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "django_currentuser.middleware.ThreadLocalUserMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -77,7 +78,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
-AUTH_User_MODEL = "core.CoreUser"
+AUTH_USER_MODEL  = "core.CoreUser"
 
 TEMPLATES = [
     {
@@ -144,15 +145,23 @@ TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tehran")
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "static"
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Only add STATICFILES_DIRS if the directory exists
+static_dir = os.path.join(BASE_DIR, 'static')
+if os.path.exists(static_dir):
+    STATICFILES_DIRS = [static_dir]
+else:
+    STATICFILES_DIRS = [] 
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Clinic-Reservation API Documentation",
+    "TITLE": "concert-ticket-reservation API Documentation",
     "DESCRIPTION": "API documentation for Reservation-website",
     "VERSION": "1.0.0",
     "TAGS": None,

@@ -47,5 +47,6 @@ class BookingSerializer(GenericModelSerializer):
             "time",
             "is_pass",
             "is_reserved",
+            "show",
         )
-        read_only_fields = ["total_price"]
+        read_only_fields = ["total_price", "usesr"]
